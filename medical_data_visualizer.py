@@ -16,21 +16,18 @@ df['gluc'] = np.where(df['gluc'] == 1, 0, 1)
 # 4
 def draw_cat_plot():
     # 5
-    df_cat = pd.melt(df, id_vars=['cardio'], value_vars=['cholesterol', 'gluc', 'smoke', 'alco', 'active', 'overweight'], 
-                 var_name='variable', value_name='value')
+    df_cat = pd.melt(df, id_vars=['cardio'],
+                     value_vars=['cholesterol', 'gluc', 'smoke', 'alco', 'active', 'overweight'])
 
     # 6
-    df_cat_0 = df_cat[df_cat['cardio'] == 0].value_counts()
-    df_cat_1 = df_cat[df_cat['cardio'] == 1].value_counts()
+    df_cat = df_cat.groupby(['cardio', 'variable', 'value']).size().reset_index()
+    df_cat = df_cat.rename(columns={0: 'total'})
 
     # 7
-    sns.catplot(x='variable', hue='value', col='cardio', kind='count', data=df_cat)
+    graph = sns.catplot(data=df_cat, kind="bar", x="variable", y="total", hue="value", col="cardio")
     
-
-
     # 8
-    fig = plt.show()
-
+    fig = graph.fig
 
     # 9
     fig.savefig('catplot.png')
@@ -39,29 +36,26 @@ def draw_cat_plot():
 
 # 10
 def draw_heat_map():
-    # 11
-    df_heat = df[
-    (df['height'] >= df['height'].quantile(0.025)) &
-    (df['height'] <= df['height'].quantile(0.975)) &
-    (df['weight'] >= df['weight'].quantile(0.025)) &
-    (df['weight'] <= df['weight'].quantile(0.975))
-]
+    # Clean the data
+    df_heat = df[(df['ap_lo'] <= df['ap_hi']) &
+                 (df['height'] >= df['height'].quantile(0.025)) &
+                 (df['height'] <= df['height'].quantile(0.975)) &
+                 (df['weight'] >= df['weight'].quantile(0.025)) &
+                 (df['weight'] <= df['weight'].quantile(0.975))
+                 ]
 
-    # 12
+    # Calculate the correlation matrix
     corr = df_heat.corr()
 
-    # 13
-    mask = pd.DataFrame(np.triu(np.ones_like(corr, dtype=bool)))
+    # Generate a mask for the upper triangle
+    mask = np.triu(np.ones_like(corr, dtype=bool))
 
+    # Set up the matplotlib figure
+    fig, ax = plt.subplots(figsize=(14, 14))
 
+    # Draw the heatmap with 'sns.heatmap()'
+    sns.heatmap(corr, mask=mask, square=True, annot=True, fmt="0.1f")
 
-    # 14
-    fig, ax = plt.subplots(figsize=(12, 12))
-
-    # 15
-    sns.heatmap(corr, annot=True, fmt='.1f', mask=mask, vmax=.3, center=0, square=True, linewidths=.5, cbar_kws={'shrink': .5})
-
-
-    # 16
+    # Do not modify the next two lines
     fig.savefig('heatmap.png')
     return fig
